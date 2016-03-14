@@ -48,6 +48,9 @@
     log_msg(&(msg)); \
   } while (0);
 
+#define LOG_EVENT_CURR(thread_id) \
+    sb_timer_value(&timers[thread_id])
+
 /* Message types definition */
 
 typedef enum {

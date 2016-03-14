@@ -183,6 +183,10 @@ static unsigned long long last_bytes_read;
 static unsigned long long bytes_written;
 static unsigned long long last_bytes_written;
 
+#define TIMER_1S   1000000000
+static int write_1s_before_cnt=0;
+static unsigned long long write_1s_before_time=0;
+
 static const double megabyte = 1024.0 * 1024.0;
 
 #ifdef HAVE_MMAP
@@ -722,6 +726,28 @@ int file_execute_request(sb_request_t *sb_req, int thread_id)
         write_ops++;
         bytes_written += file_req->size;
         SB_THREAD_MUTEX_UNLOCK();
+      }
+
+      if((LOG_EVENT_CURR(thread_id)) > TIMER_1S)
+      {
+#define TIMESTAMP_FMT "[%F-%T] "
+#define TEXT_BUFFER_SIZE 128
+        char           buf[TEXT_BUFFER_SIZE];
+        struct tm      tm_now;
+        time_t         t_now;
+        double	 opseconds;
+        time(&t_now);
+        gmtime_r((const time_t *)&t_now, &tm_now);
+        strftime(buf, TEXT_BUFFER_SIZE, TIMESTAMP_FMT, &tm_now);
+        opseconds = NS2SEC((double)(LOG_EVENT_CURR(thread_id)));
+        log_text(LOG_NOTICE, "Dongwu(> 1s) : %s %f %d %llu", buf, opseconds, write_1s_before_cnt, write_1s_before_time);
+        write_1s_before_cnt=0;
+        write_1s_before_time=0;
+      }
+      else
+      {
+        write_1s_before_cnt++;
+        write_1s_before_time+=(LOG_EVENT_CURR(thread_id));
       }
 
       break;
